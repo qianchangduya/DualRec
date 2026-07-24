@@ -1,8 +1,11 @@
 import numpy as np
 import scipy.sparse as sp  # 导入SciPy用于稀疏矩阵的支持
+import os
 
+# 脚本所在目录，用于解析相对路径
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 数据路径
-data_path = '../../data/Meituan/'
+data_path = os.path.abspath(os.path.join(_BASE_DIR, '../../data/Meituan/')) + '/'
 train_path = data_path + 'workday/training_list.npy'
 valid_path = data_path + 'workday/validation_dict.npy'
 user_feat_path = data_path + 'workday/user_feature.npy'
@@ -108,26 +111,23 @@ interaction_jaccard_sim, interaction_difference = calculate_interaction_change(
 
 
 # ======== 3. 用户分类 ========
-# 分类规则：根据用户特征变化和交互变化
-def classify_users(euclidean_change, feature_diff, jaccard_sim, interaction_diff, thresholds):
-    feature_threshold, interaction_threshold = thresholds
-    iid_users = (euclidean_change <= feature_threshold[0]) & \
-                (feature_diff <= feature_threshold[1]) & \
-                (jaccard_sim >= interaction_threshold[0]) & \
-                (interaction_diff <= interaction_threshold[1])
+# 分类规则（Eq. 3）：双指标决策，仅使用特征空间欧几里得距离 d(u) 与交互空间 Jaccard 相似度 J(u)
+#   stable  iff  d(u) <= eps_Euc  AND  J(u) >= tau_J
+# feature_difference 与 interaction_difference 仍保留作为诊断统计量，但不参与分类判定。
+def classify_users(euclidean_change, jaccard_sim, eps_euc, tau_j):
+    iid_users = (euclidean_change <= eps_euc) & (jaccard_sim >= tau_j)
     ood_users = ~iid_users
     return iid_users, ood_users
 
 
 # 阈值选择（动态选择基于分位数）
-feature_threshold = (np.percentile(user_feature_euclidean, 40),  # 欧几里得距离中值
-                     np.percentile(user_feature_difference, 50))  # 特征差异均值中值
-interaction_threshold = (np.percentile(interaction_jaccard_sim, 30),  # Jaccard 相似度中值
-                         np.percentile(interaction_difference, 50))  # 交互差异中值
+# eps_Euc: 欧几里得距离阈值（特征空间稳定性），tau_J: Jaccard 相似度阈值（交互空间一致性）
+eps_euc = np.percentile(user_feature_euclidean, 40)   # d(u) <= eps_Euc  -> 特征稳定
+tau_j = np.percentile(interaction_jaccard_sim, 30)     # J(u) >= tau_J     -> 交互一致
 
-iid_users, ood_users = classify_users(user_feature_euclidean, user_feature_difference,
-                                      interaction_jaccard_sim, interaction_difference,
-                                      (feature_threshold, interaction_threshold))
+iid_users, ood_users = classify_users(user_feature_euclidean,
+                                      interaction_jaccard_sim,
+                                      eps_euc, tau_j)
 
 
 # 保存分类结果

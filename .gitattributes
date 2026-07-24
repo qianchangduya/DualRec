@@ -1,4 +1,0 @@
-*.pt filter=lfs diff=lfs merge=lfs -text
-*.pth filter=lfs diff=lfs merge=lfs -text
-data/Meituan/orders_train.txt filter=lfs diff=lfs merge=lfs -text
-data/Taobao/raw_sample.csv filter=lfs diff=lfs merge=lfs -text

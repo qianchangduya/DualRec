@@ -1,9 +1,13 @@
 #Meituan数据集处理
 import numpy as np
 import pandas as pd
+import os
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR = os.path.abspath(os.path.join(_BASE_DIR, '../../data/Meituan/')) + '/'
 
 # 加载 .txt 文件，假设数据是制表符分隔的
-orders_train = pd.read_csv('../../data/Meituan/orders_train.txt', sep='\t')
+orders_train = pd.read_csv(_DATA_DIR + 'orders_train.txt', sep='\t')
 
 # 将 dt 列转换为字符串类型，确保没有数字格式问题
 orders_train['dt'] = orders_train['dt'].astype(str)
@@ -89,8 +93,8 @@ class_1_common = class_1_common[['user_id_new', 'wm_poi_id_new']]
 class_2_common = class_2_common[['user_id_new', 'wm_poi_id_new']]
 
 # 保存处理后的文件
-class_1_common.to_csv('../../data/Meituan/weekday/weekend.txt', sep='\t', index=False)
-class_2_common.to_csv('../../data/Meituan/workday/workday.txt', sep='\t', index=False)
+class_1_common.to_csv(_DATA_DIR + 'weekday/weekend.txt', sep='\t', index=False)
+class_2_common.to_csv(_DATA_DIR + 'workday/workday.txt', sep='\t', index=False)
 
 # 保存映射关系到文件
 user_id_mapping_df = pd.DataFrame(list(user_id_new_mapping.items()), columns=['original_user_id', 'new_user_id'])
@@ -141,13 +145,13 @@ train_class_1, val_class_1, test_class_1 = split_dataset(class_1_common)
 train_class_2, val_class_2, test_class_2 = split_dataset(class_2_common)
 
 # 保存划分后的数据集
-train_class_1.to_csv('../../data/Meituan/weekday/weekend_train.txt', sep='\t', index=False)
-val_class_1.to_csv('../../data/Meituan/weekday/weekend_val.txt', sep='\t', index=False)
-test_class_1.to_csv('../../data/Meituan/weekday/weekend_test.txt', sep='\t', index=False)
+train_class_1.to_csv(_DATA_DIR + 'weekday/weekend_train.txt', sep='\t', index=False)
+val_class_1.to_csv(_DATA_DIR + 'weekday/weekend_val.txt', sep='\t', index=False)
+test_class_1.to_csv(_DATA_DIR + 'weekday/weekend_test.txt', sep='\t', index=False)
 
-train_class_2.to_csv('../../data/Meituan/workday/workday_train.txt', sep='\t', index=False)
-val_class_2.to_csv('../../data/Meituan/workday/workday_val.txt', sep='\t', index=False)
-test_class_2.to_csv('../../data/Meituan/workday/workday_test.txt', sep='\t', index=False)
+train_class_2.to_csv(_DATA_DIR + 'workday/workday_train.txt', sep='\t', index=False)
+val_class_2.to_csv(_DATA_DIR + 'workday/workday_val.txt', sep='\t', index=False)
+test_class_2.to_csv(_DATA_DIR + 'workday/workday_test.txt', sep='\t', index=False)
 
 print("数据集划分完成并保存！")
 
@@ -157,15 +161,15 @@ print("保存完成！")
 
 
 # 读取文件
-weekend_df = pd.read_csv('../../data/Meituan/weekday/weekend.txt', sep='\t')
-workday_df = pd.read_csv('../../data/Meituan/workday/workday.txt', sep='\t')
+weekend_df = pd.read_csv(_DATA_DIR + 'weekday/weekend.txt', sep='\t')
+workday_df = pd.read_csv(_DATA_DIR + 'workday/workday.txt', sep='\t')
 
 # 合并数据
 combined_df = pd.concat([weekend_df, workday_df], ignore_index=True)
 
 # 加载布尔数组
-iid_users = np.load('../../data/Meituan/iid_users.npy')
-ood_users = np.load('../../data/Meituan/ood_users.npy')
+iid_users = np.load(_DATA_DIR + 'iid_users.npy')
+ood_users = np.load(_DATA_DIR + 'ood_users.npy')
 
 # 获取True值的user_id_new索引
 iid_user_ids = set(np.where(iid_users)[0])
@@ -193,16 +197,16 @@ for user_id, poi_ids in total_user_to_pois.items():
     total_result.append(f"{user_id} " + " ".join(map(str, poi_ids)))
 
 # 保存IID数据
-with open('../../data/Meituan/iid_users.txt', 'w') as f:
+with open(_DATA_DIR + 'iid_users.txt', 'w') as f:
     for user_id in sorted(iid_user_to_pois):
         f.write(f"{user_id} " + " ".join(map(str, iid_user_to_pois[user_id])) + '\n')
 
 # 保存OOD数据
-with open('../../data/Meituan/ood_users.txt', 'w') as f:
+with open(_DATA_DIR + 'ood_users.txt', 'w') as f:
     for user_id in sorted(ood_user_to_pois):
         f.write(f"{user_id} " + " ".join(map(str,ood_user_to_pois[user_id])) + '\n')
 
 # 保存合并排序后的数据
-with open('../../data/Meituan/Meituan.txt', 'w') as f:
+with open(_DATA_DIR + 'Meituan.txt', 'w') as f:
     for line in total_result:
         f.write(line + '\n')

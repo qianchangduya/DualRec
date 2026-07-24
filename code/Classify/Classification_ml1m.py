@@ -1,8 +1,10 @@
 import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
+import os
 
-data_path = '../../data/ml1m/'
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data_path = os.path.abspath(os.path.join(_BASE_DIR, '../../data/ml1m/')) + '/'
 train_path = data_path + 'workday/training_list.npy'
 valid_path = data_path + 'workday/validation_dict.npy'
 user_feat_path = data_path + 'workday/user_feature.npy'
@@ -161,24 +163,21 @@ print("计算用户交互变化...")
 interaction_jaccard_sim, interaction_difference = calculate_interaction_change(train_data, week_train_data)
 
 
-# ======== 3. 用户分类 (改进阈值策略) ========
-def classify_users(euclidean_change, feature_diff, jaccard_sim, interaction_diff):
-    """分类用户（改进阈值策略）"""
-    # 动态选择基于分位数 - 使用更合理的分位数
-    feature_threshold = (np.percentile(euclidean_change, 60), np.percentile(feature_diff, 80))
-    interaction_threshold = (np.percentile(jaccard_sim, 30), np.percentile(interaction_diff, 50))
+# ======== 3. 用户分类 (双指标决策 Eq. 3) ========
+def classify_users(euclidean_change, jaccard_sim):
+    """双指标分类：仅使用特征空间欧几里得距离 d(u) 与交互空间 Jaccard 相似度 J(u)
+    stable  iff  d(u) <= eps_Euc  AND  J(u) >= tau_J
+    feature_difference 与 interaction_difference 仅作诊断统计，不参与判定。
+    """
+    # 阈值：eps_Euc 取欧几里得距离分位数，tau_J 取 Jaccard 相似度分位数
+    eps_euc = np.percentile(euclidean_change, 60)      # d(u) <= eps_Euc  -> 特征稳定
+    tau_j = np.percentile(jaccard_sim, 30)             # J(u) >= tau_J     -> 交互一致
 
-    print(f"特征阈值: 欧几里得={feature_threshold[0]:.4f}, 差异={feature_threshold[1]:.4f}")
-    print(f"交互阈值: Jaccard={interaction_threshold[0]:.4f}, 差异={interaction_threshold[1]:.4f}")
+    print(f"特征阈值: 欧几里得 eps_Euc={eps_euc:.4f}")
+    print(f"交互阈值: Jaccard tau_J={tau_j:.4f}")
 
-    # 使用向量化操作进行分类
-    iid_users = (
-            (euclidean_change <= feature_threshold[0]) &
-            (feature_diff <= feature_threshold[1]) &
-            (jaccard_sim >= interaction_threshold[0]) &
-            (interaction_diff <= interaction_threshold[1])
-    )
-
+    # 使用向量化操作进行分类（双指标）
+    iid_users = (euclidean_change <= eps_euc) & (jaccard_sim >= tau_j)
     ood_users = ~iid_users
 
     return iid_users, ood_users
@@ -186,8 +185,8 @@ def classify_users(euclidean_change, feature_diff, jaccard_sim, interaction_diff
 
 print("分类用户...")
 iid_users, ood_users = classify_users(
-    user_feature_euclidean, user_feature_difference,
-    interaction_jaccard_sim, interaction_difference
+    user_feature_euclidean,
+    interaction_jaccard_sim
 )
 
 # 保存分类结果

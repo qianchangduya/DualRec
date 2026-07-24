@@ -415,7 +415,7 @@ class DistSAModelTrainer(Trainer):
         ) / torch.sum(istarget)
 
 
-        loss += contrast_loss * 0.2
+        loss += contrast_loss * self.args.contrast_weight
 
         return loss, auc, pvn_loss
 

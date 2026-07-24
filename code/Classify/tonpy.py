@@ -3,43 +3,12 @@
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+import os
 
+# 脚本所在目录，用于解析相对路径
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 数据路径
-# data_path = '../../data/Meituan/'
-# train_path = data_path + 'workday/workday_train.txt'
-# week_train_path = data_path + 'weekday/weekend_train.txt'
-# valid_path = data_path + 'workday/workday_val.txt'
-# week_valid_path = data_path + 'weekday/weekend_val.txt'
-# test_path = data_path + 'workday/workday_test.txt'
-# week_test_path = data_path + 'weekday/weekend_test.txt'
-# work_user_feat_path = data_path + 'workday/work_user_feature.csv'
-# week_user_feat_path = data_path + 'weekday/week_user_feature.csv'
-# user_feat_path = data_path + 'user_feature.csv'
-
-# data_path = '../../data/Taobao/'
-# train_path = data_path + 'first_seven/first_seven_train.txt'
-# week_train_path = data_path + 'last_three/last_three_train.txt'
-# valid_path = data_path + 'first_seven/first_seven_val.txt'
-# week_valid_path = data_path + 'last_three/last_three_val.txt'
-# test_path = data_path + 'first_seven/first_seven_test.txt'
-# week_test_path = data_path + 'last_three/last_three_test.txt'
-# work_user_feat_path = data_path + 'first_seven/seven_user_feature.csv'
-# week_user_feat_path = data_path + 'last_three/last_user_feature.csv'
-# user_feat_path = data_path + 'user_feature.csv'
-
-
-# data_path = '../../data/ml1m/'
-# train_path = data_path + 'workday/workday_train.txt'
-# week_train_path = data_path + 'weekend/weekend_train.txt'
-# valid_path = data_path + 'workday/workday_val.txt'
-# week_valid_path = data_path + 'weekend/weekend_val.txt'
-# test_path = data_path + 'workday/workday_test.txt'
-# week_test_path = data_path + 'weekend/weekend_test.txt'
-# work_user_feat_path = data_path + 'workday/work_user_feature.csv'
-# week_user_feat_path = data_path + 'weekend/week_user_feature.csv'
-# user_feat_path = data_path + 'user_feature.csv'
-
-data_path = '../../data/Beauty/'
+data_path = os.path.abspath(os.path.join(_BASE_DIR, '../../data/Beauty/')) + '/'
 train_path = data_path + 'workday/workday_train.txt'
 week_train_path = data_path + 'weekend/weekend_train.txt'
 valid_path = data_path + 'workday/workday_val.txt'

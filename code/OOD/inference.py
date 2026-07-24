@@ -13,6 +13,9 @@ import data_utils  # 导入数据处理工具模块
 import evaluate_util  # 导入评估工具模块
 import os  # 导入操作系统接口模块
 
+# 脚本所在目录，用于解析相对路径（兼容 VSCode/PyCharm 等不同工作目录）
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # 设置命令行参数解析
 parser = argparse.ArgumentParser(description='PyTorch COR Inference')
 parser.add_argument('--model_name', type=str, default='COR',
@@ -39,6 +42,9 @@ parser.add_argument('--ckpt', type=str, default= r'E:\IPG-Rec-master\COR-main\co
 
 # 解析命令行参数
 args = parser.parse_args()
+# 将相对路径基于脚本所在目录解析为绝对路径
+if not os.path.isabs(args.data_path):
+    args.data_path = os.path.join(_BASE_DIR, args.data_path)
 print(args)  # 打印解析的参数
 
 # 设置随机种子以确保实验的可重复性
@@ -163,16 +169,17 @@ def evaluate(data_tr, data_te, his_mask, user_feat, topN, CI=0):
             his_item = his_mask[e_idxlist[start_idx:end_idx]]  # 获取历史物品掩码
             user_f = torch.FloatTensor(user_feat[e_idxlist[start_idx:end_idx]]).to(device)  # 获取用户特征
             data_tensor = naive_sparse2tensor(data).to(device)  # 将稀疏矩阵转换为张量并移动到设备
-            Z2_reuse_batch = None  # 用于保存模型重用的参数
 
-            # 前向传播获取重构输出和潜变量
-            recon_batch, mu, logvar, _ = model(data_tensor, user_f, Z2_reuse_batch, CI)
+            # Eq. 15-25: forward returns factual P, counterfactual P_star, factual E2 (mu, logvar),
+            # Z2 (Z_stable), Z2_star (Z_stable*), reg_loss.
+            P, P_star, mu, logvar, Z2, Z2_star, reg_loss = model(data_tensor, user_f, CI)
 
-            # 计算损失
-            loss = criterion(recon_batch, data_tensor, mu, logvar)
+            # L_Unstable (Eq. 25) with default lambda weights
+            loss = criterion(P_star, data_tensor, mu, logvar, Z2, Z2_star, reg_loss)
             total_loss += loss.item()  # 累加损失
 
-            # 排除训练集中已有的物品
+            # Rank by the counterfactual prediction P_star (CI=1) or the factual P (CI=0)
+            recon_batch = P_star if CI else P
             recon_batch[his_item.nonzero()] = -np.inf  # 将历史物品的重构输出置为负无穷
 
             # 获取前topN个物品

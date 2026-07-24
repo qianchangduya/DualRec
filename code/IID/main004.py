@@ -18,6 +18,9 @@ from utils import EarlyStopping, get_user_seqs, get_item2attribute_json, check_p
 import numpy as np
 import torch
 
+# 脚本所在目录，用于解析相对路径（兼容 VSCode/PyCharm 等不同工作目录）
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 class LossBasedEarlyStopping:
     """基于训练损失的早停策略（优化后：只在训练结束写入磁盘）"""
 
@@ -80,7 +83,7 @@ def main():
 
     # parser.add_argument('--path_name', default='Meituan', type=str)
     parser.add_argument('--path_name', default='Taobao', type=str)
-    # parser.add_argument('--path_name', default='ml1m', type=str)
+    # parser.add_argument('--path_name', default='ml1m', type=str)}
     # parser.add_argument('--path_name', default='Beauty', type=str)
 
     parser.add_argument('--do_eval', action='store_true')
@@ -94,22 +97,24 @@ def main():
     # parser.add_argument('--num_attention_heads', default=2, type=int)
     parser.add_argument('--num_attention_heads', default=4, type=int)
     parser.add_argument('--hidden_act', default="gelu", type=str) # gelu relu
-    # parser.add_argument("--attention_probs_dropout_prob", type=float, default=0.5, help="attention dropout p")
     # parser.add_argument("--attention_probs_dropout_prob", type=float, default=0.1, help="attention dropout p")
-    parser.add_argument("--attention_probs_dropout_prob", type=float, default=0.1, help="attention dropout p")
+    parser.add_argument("--attention_probs_dropout_prob", type=float, default=0.3, help="attention dropout p")
     # parser.add_argument("--hidden_dropout_prob", type=float, default=0.5, help="hidden dropout p")
-    parser.add_argument("--hidden_dropout_prob", type=float, default=0.3, help="hidden dropout p")
+    parser.add_argument("--hidden_dropout_prob", type=float, default=0.4, help="hidden dropout p")
     parser.add_argument("--initializer_range", type=float, default=0.02)
     # parser.add_argument('--max_seq_length', default=50, type=int)
     parser.add_argument('--max_seq_length', default=100, type=int)
     parser.add_argument('--distance_metric', default='wasserstein', type=str)
-    # parser.add_argument('--pvn_weight', default=0.1, type=float)
-    parser.add_argument('--pvn_weight', default=0.005, type=float)
+    parser.add_argument('--pvn_weight', default=0.015, type=float)
+    # parser.add_argument('--pvn_weight', default=0.005, type=float)
     parser.add_argument('--kernel_param', default=1.0, type=float)
+    # 稳定性一致性损失 L_CON 的权重 γ（对应论文 Eq. 中的 γ）
+    parser.add_argument('--contrast_weight', default=0.2, type=float, help="weight gamma for stability consistency loss L_CON")
 
     # train args
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of adam")
-    parser.add_argument("--batch_size", type=int, default=256, help="number of batch_size")
+    # parser.add_argument("--lr", type=float, default=0.0009, help="learning rate of adam")
+    parser.add_argument("--batch_size", type=int, default=256, help="number of batch_size"  )
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
     parser.add_argument("--no_cuda", action="store_true")
     parser.add_argument("--log_freq", type=int, default=1, help="per epoch print res")
@@ -123,6 +128,13 @@ def main():
                         help="Path to save the prediction results (default: output_dir/predictions.npy)")
 
     args = parser.parse_args()
+
+    # 将相对路径基于脚本所在目录解析为绝对路径
+    if not os.path.isabs(args.data_dir):
+        args.data_dir = os.path.join(_BASE_DIR, args.data_dir)
+    if not os.path.isabs(args.output_dir):
+        args.output_dir = os.path.join(_BASE_DIR, args.output_dir)
+    args.output_dir = args.output_dir.replace('/', os.sep).replace('\\', os.sep)
 
     def set_seed(seed):
         random.seed(seed)
@@ -215,7 +227,7 @@ def main():
     else:
         # 初始化早停策略
         early_stopping = LossBasedEarlyStopping(
-            patience=5,
+            patience=20,
             delta=0.0001,
             verbose=True
         )
